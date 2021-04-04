@@ -5,7 +5,26 @@ import (
 )
 
 type Defaultable interface {
-	setDefaults()
+	SetDefaults()
+}
+
+func SetDefaultsRecurs(s interface{}) {
+	rvf := reflect.ValueOf(s)
+	rv := rvf.Elem()
+
+	rvf.MethodByName("SetDefaults").Call(nil)
+
+	for i := 0; i < rv.NumField(); i++ {
+		field := rv.Field(i)
+		fieldType := field.Kind()
+		if fieldType == reflect.Struct {
+			SetDefaultsRecurs(field.Addr().Interface())
+		} else if fieldType == reflect.Slice {
+			for j := 0; j < field.Len(); j++ {
+				SetDefaultsRecurs(field.Index(j).Addr().Interface())
+			}
+		}
+	}
 }
 
 func setDefault(target interface{}, def interface{}) {
@@ -38,44 +57,40 @@ func isZero(v reflect.Value) bool {
 }
 
 // todo: run all setDefaults recursively with reflect
-func (p *Project) setDefaults() {
-	for i := range p.Apps {
-		a := p.Apps[i]
-		a.setDefaults()
-		p.Apps[i] = a
-	}
+func (p *Project) SetDefaults() {
+	println("Project")
 }
 
-func (a *app) setDefaults() {
-	for i := range a.Authn {
-		a.Authn[i].setDefaults()
-	}
+func (a *app) SetDefaults() {
+	println("app")
 }
 
-func (authn *Authn) setDefaults() {
+func (authn *Authn) SetDefaults() {
 	setDefault(&authn.PathPrefix, "/")
+	println("Authn")
 }
 
-func (a *Authz) setDefaults() {
-
+func (a *Authz) SetDefaults() {
+	println("Authz")
 }
 
-func (s *Storage) setDefaults() {
-
-}
-
-func (c *Collection) setDefaults() {
-
-}
-
-func (s *specification) setDefaults() {
+func (s *Storage) SetDefaults() {
+	println("Storage")
 
 }
 
-func (h *PwHasher) setDefaults() {
-
+func (c *Collection) SetDefaults() {
+	println("Collection")
 }
 
-func (c *cryptoKey) setDefaults() {
+func (s *specification) SetDefaults() {
+	println("specification")
+}
 
+func (h *PwHasher) SetDefaults() {
+	println("PwHasher")
+}
+
+func (c *cryptoKey) SetDefaults() {
+	println("cryptoKey")
 }

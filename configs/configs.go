@@ -9,12 +9,12 @@ type (
 	RawConfig = map[string]interface{}
 
 	Project struct {
-		APIVersion   string         `config:"api_version"`
-		Apps         map[string]app `config:"apps"`
-		StorageConfs []Storage      `config:"storages"`
-		CollConfs    []Collection   `config:"collections"`
-		HasherConfs  []PwHasher     `config:"hashers"`
-		CryptoKeys   []cryptoKey    `config:"crypto_keys"`
+		APIVersion   string          `config:"api_version"`
+		Apps         map[string]*app `config:"apps"`
+		StorageConfs []Storage       `config:"storages"`
+		CollConfs    []Collection    `config:"collections"`
+		HasherConfs  []PwHasher      `config:"hashers"`
+		CryptoKeys   []cryptoKey     `config:"crypto_keys"`
 	}
 
 	app struct {
@@ -83,7 +83,7 @@ func LoadMainConfig() (*Project, error) {
 		return nil, fmt.Errorf("project config init: %v", err)
 	}
 
-	rawConf.setDefaults()
+	SetDefaultsRecurs(&rawConf)
 
 	return &rawConf, nil
 }
