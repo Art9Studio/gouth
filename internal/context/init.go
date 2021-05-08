@@ -3,7 +3,6 @@ package context
 import (
 	"aureole/internal/collections"
 	"aureole/internal/configs"
-	"aureole/internal/context/app"
 	"aureole/internal/identity"
 	"aureole/internal/plugins/authn"
 	authnTypes "aureole/internal/plugins/authn/types"
@@ -197,12 +196,12 @@ func createCryptoKeys(conf *configs.Project, ctx *ProjectCtx) error {
 }
 
 func createApps(conf *configs.Project, ctx *ProjectCtx) error {
-	ctx.Apps = make(map[string]*app.App, len(conf.Apps))
+	ctx.Apps = make(map[string]*App, len(conf.Apps))
 
 	for n := range conf.Apps {
 		appConf := conf.Apps[n]
 
-		ctx.Apps[n] = &app.App{
+		ctx.Apps[n] = &App{
 			PathPrefix: appConf.PathPrefix,
 		}
 	}
@@ -339,7 +338,7 @@ func initAppPlugins(ctx *ProjectCtx) error {
 	return nil
 }
 
-func initAuthenticators(appName string, app *app.App) error {
+func initAuthenticators(appName string, app *App) error {
 	for _, authenticator := range app.Authenticators {
 		if err := authenticator.Init(appName); err != nil {
 			return err
@@ -349,7 +348,7 @@ func initAuthenticators(appName string, app *app.App) error {
 	return nil
 }
 
-func initAuthorizers(appName string, app *app.App) error {
+func initAuthorizers(appName string, app *App) error {
 	for _, authorizer := range app.Authorizers {
 		if err := authorizer.Init(appName); err != nil {
 			return err

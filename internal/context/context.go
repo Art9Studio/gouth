@@ -2,8 +2,8 @@ package context
 
 import (
 	"aureole/internal/collections"
-	"aureole/internal/context/app"
 	"aureole/internal/identity"
+	"aureole/internal/plugins/authn/types"
 	authzTypes "aureole/internal/plugins/authz/types"
 	cryptoKeyTypes "aureole/internal/plugins/cryptokey/types"
 	pwhasherTypes "aureole/internal/plugins/pwhasher/types"
@@ -12,17 +12,26 @@ import (
 	"fmt"
 )
 
-type (
-	ProjectCtx struct {
-		APIVersion  string
-		Apps        map[string]*app.App
-		Collections map[string]*collections.Collection
-		Storages    map[string]storageTypes.Storage
-		Hashers     map[string]pwhasherTypes.PwHasher
-		Senders     map[string]senderTypes.Sender
-		CryptoKeys  map[string]cryptoKeyTypes.CryptoKey
-	}
-)
+type ProjectCtx struct {
+	APIVersion  string
+	Apps        map[string]*App
+	Collections map[string]*collections.Collection
+	Storages    map[string]storageTypes.Storage
+	Hashers     map[string]pwhasherTypes.PwHasher
+	Senders     map[string]senderTypes.Sender
+	CryptoKeys  map[string]cryptoKeyTypes.CryptoKey
+}
+
+type App struct {
+	PathPrefix     string
+	Identity       *identity.Identity
+	Authenticators []types.Authenticator
+	Authorizers    map[string]authzTypes.Authorizer
+}
+
+func (a App) GetPathPrefix() string {
+	return a.PathPrefix
+}
 
 func (ctx *ProjectCtx) GetCollection(name string) (*collections.Collection, error) {
 	c, ok := ctx.Collections[name]

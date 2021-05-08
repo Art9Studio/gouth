@@ -1,25 +1,33 @@
 package router
 
 import (
-	"aureole/internal/context/app"
-	"aureole/internal/router/interface"
 	"github.com/gofiber/fiber/v2"
 	"path"
 )
 
 type TRouter struct {
-	Routes map[string][]*_interface.Route
+	Routes map[string][]*Route
+}
+
+type Route struct {
+	Method  string
+	Path    string
+	Handler func(*fiber.Ctx) error
 }
 
 var Router TRouter
 
+type App interface {
+	GetPathPrefix() string
+}
+
 // CreateServer initializes router and creates routes for each application
-func CreateServer(apps map[string]*app.App) (*fiber.App, error) {
+func CreateServer(apps map[string]interface{}) (*fiber.App, error) {
 	r := fiber.New()
 	v := r.Group("")
 
 	for appName, routes := range Router.Routes {
-		pathPrefix := apps[appName].PathPrefix
+		pathPrefix := apps.(map[string]*App).GetPathPrefix()
 		appR := v.Group(pathPrefix)
 
 		for _, route := range routes {
@@ -32,12 +40,12 @@ func CreateServer(apps map[string]*app.App) (*fiber.App, error) {
 
 func Init() TRouter {
 	Router = TRouter{
-		Routes: make(map[string][]*_interface.Route),
+		Routes: make(map[string][]*Route),
 	}
 	return Router
 }
 
-func (r TRouter) Add(appName string, routes []*_interface.Route) {
+func (r TRouter) Add(appName string, routes []*Route) {
 	for i := range routes {
 		routes[i].Path = path.Clean(routes[i].Path)
 	}

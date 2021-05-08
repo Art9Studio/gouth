@@ -8,7 +8,7 @@ import (
 	authzTypes "aureole/internal/plugins/authz/types"
 	"aureole/internal/plugins/pwhasher/types"
 	storageTypes "aureole/internal/plugins/storage/types"
-	"aureole/internal/router/interface"
+	"aureole/internal/router"
 	"fmt"
 	"github.com/mitchellh/mapstructure"
 )
@@ -77,7 +77,7 @@ func initConfig(rawConf *configs.RawConfig) (*сonfig, error) {
 }
 
 func createRoutes(p *pwBased) {
-	routes := []*_interface.Route{
+	routes := []*router.Route{
 		{
 			Method:  "POST",
 			Path:    p.rawConf.PathPrefix + p.conf.Login.Path,
