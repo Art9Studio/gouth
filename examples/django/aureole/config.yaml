@@ -40,7 +40,7 @@ apps:
           alg: "RS256"
           sign_key: jwk_file
           verify_keys: [jwk_file]
-          payload: "./examples/django/emptyapi/jwt_payload.json"
+          payload: "resources/jwt_payload.json"
 
 storages:
   - type: "postgresql"
@@ -76,7 +76,7 @@ collections:
       fields_map:
         password: "password"
 
-hashers:
+hashers:docker-compose.yml
   - type: "pbkdf2"
     name: django
 
@@ -84,4 +84,4 @@ crypto_keys:
   - type: "jwk"
     name: jwk_file
     config:
-      path: "lab/keys/keys.json"
+      path: "resources/jwk_private.json"

@@ -134,4 +134,4 @@ crypto_keys:
   - type: "jwk"
     name: jwk_file
     config:
-      path: "lab/keys/keys.json"
+      path: "lab/keys/jwk_private.json"
