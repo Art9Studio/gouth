@@ -3,6 +3,7 @@ module aureole
 go 1.15
 
 require (
+	github.com/adam-hanna/arrayOperations v0.2.6 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/goccy/go-json v0.5.1 // indirect
 	github.com/gofiber/fiber/v2 v2.14.0
@@ -25,8 +26,10 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.7.1 // indirect
 	github.com/stretchr/testify v1.7.0
+	github.com/thecasualcoder/godash v0.0.0-20191025100230-7e5f9a5f8a6b
 	go.uber.org/multierr v1.6.0 // indirect
 	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
+	golang.org/x/oauth2 v0.0.0-20210622215436-a8dc77f794b6
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b

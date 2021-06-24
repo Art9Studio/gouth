@@ -129,6 +129,44 @@ apps:
             fields_map:
               email: "{$.email}"
 
+      - type: "google"
+        path_prefix: "/oauth2/google"
+        authz: jwt
+        config:
+          collection: oauth2
+          storage: one_db
+          #client_id: "${GOOGLE_CLIENT_ID}"  # todo: fix loading this values
+          #client_secret: "${GOOGLE_SECRET}"
+          client_id: "979380211364-2j73orhvik7tkdvts349r2fu4m2gm0ep.apps.googleusercontent.com"
+          client_secret: "pftK4-1eEHzD1VoPunHEFz50"
+          scopes: [ "https://www.googleapis.com/auth/userinfo.email",
+                    "https://www.googleapis.com/auth/userinfo.profile" ]
+          redirect_uri: "/login"
+          fields_map:
+            first_name: "given_name"
+            last_name: "family_name"
+
+      - type: "vk"
+        path_prefix: "/oauth2/vk"
+        authz: jwt
+        config:
+          collection: oauth2
+          storage: one_db
+          #client_id: "${VK_CLIENT_ID}"  # todo: fix loading this values
+          #client_secret: "${VK_SECRET}"
+          client_id: "7897145"
+          client_secret: "80ngClKsSMQHSJGdeC86"
+          scopes: [ "email" ]
+          redirect_uri: "/login"
+          api:
+            version: 5.131
+            fields: [ ]
+          fields_map:
+            first_name: "first_name"
+            last_name: "last_name"
+            city: "city"
+            country: "country"
+
     authZ:
       - type: "jwt"
         name: jwt
@@ -141,7 +179,7 @@ apps:
           iat: true
           jti: 0 # todo: implement jti
           access_bearer: "cookie" # [cookie, header, both]
-          refresh_bearer: "cookie" # [cookie, body, both]
+          refresh_bearer: "body" # [cookie, body, both]
           alg: "RS256"
           sign_key: jwk_file
           verify_keys: [ jwk_file ]
@@ -349,6 +387,22 @@ collections:
         token: "token"
         expires: "expires"
         invalid: "invalid"
+
+  - type: "oauth2"
+    name: oauth2
+    config:
+      name: "social_logins"
+      pk: id
+      fields_map:
+        id: "id"
+        social_id: "social_id"
+        email: "email"
+        provider: "provider"
+        user_data: "user_data"
+        first_name: "first_name"
+        last_name: "last_name"
+        city: "city"
+        country: "country"
 
 hashers:
   - type: "argon2"

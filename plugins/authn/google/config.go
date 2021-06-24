@@ -1,0 +1,22 @@
+package google
+
+import (
+	"aureole/internal/configs"
+	authnTypes "aureole/internal/plugins/authn/types"
+)
+
+type (
+	config struct {
+		Coll         string            `mapstructure:"collection"`
+		Storage      string            `mapstructure:"storage"`
+		ClientId     string            `mapstructure:"client_id"`
+		ClientSecret string            `mapstructure:"client_secret"`
+		Scopes       []string          `mapstructure:"scopes"`
+		RedirectUri  string            `mapstructure:"redirect_uri"`
+		FieldsMap    map[string]string `mapstructure:"fields_map"`
+	}
+)
+
+func (g googleAdapter) Create(conf *configs.Authn) authnTypes.Authenticator {
+	return &google{rawConf: conf}
+}
