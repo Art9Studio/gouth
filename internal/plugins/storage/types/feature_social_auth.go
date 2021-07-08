@@ -14,7 +14,8 @@ type SocialAuthData struct {
 	Additional map[string]interface{}
 }
 
-func NewSocialAuthData(data map[string]interface{}, specs map[string]collections.FieldSpec) *SocialAuthData {
+func NewSocialAuthData(rawData JSONCollResult, specs map[string]collections.FieldSpec) *SocialAuthData {
+	data := rawData.(map[string]interface{})
 	userDataJson, _ := json.MarshalIndent(data[specs["user_data"].Name], "", "	")
 
 	socAuth := &SocialAuthData{
@@ -42,7 +43,9 @@ func NewSocialAuthData(data map[string]interface{}, specs map[string]collections
 type SocialAuth interface {
 	InsertSocialAuth(*collections.Spec, *SocialAuthData) (JSONCollResult, error)
 
-	GetSocialAuth(*collections.Spec, string, interface{}) (JSONCollResult, error)
+	GetSocialAuth(*collections.Spec, string, interface{}, string, interface{}) (JSONCollResult, error)
 
-	IsSocialAuthExist(*collections.Spec, string, interface{}) (bool, error)
+	IsSocialAuthExist(*collections.Spec, string, interface{}, string, interface{}) (bool, error)
+
+	LinkAccount(*collections.Spec, string, interface{}, *IdentityData) error
 }

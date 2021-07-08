@@ -35,9 +35,13 @@ func (s *Storage) InsertSocialAuth(spec *collections.Spec, data *types.SocialAut
 	return s.RawQuery(sql, args...)
 }
 
-func (s *Storage) GetSocialAuth(spec *collections.Spec, filterField string, filterVal interface{}) (types.JSONCollResult, error) {
+func (s *Storage) GetSocialAuth(spec *collections.Spec, filterField string, filterVal interface{},
+	provideField string, provider interface{}) (types.JSONCollResult, error) {
 	from := sqlbuilder.PostgreSQL.NewSelectBuilder()
-	from.Select("*").From(Sanitize(spec.Name)).Where(from.Equal(Sanitize(filterField), filterVal))
+	from.Select("*").From(Sanitize(spec.Name)).Where(
+		from.Equal(Sanitize(filterField), filterVal),
+		from.Equal(Sanitize(provideField), provider),
+	)
 
 	b := sqlbuilder.PostgreSQL.NewSelectBuilder()
 	b.Select("row_to_json(t)")
@@ -47,12 +51,24 @@ func (s *Storage) GetSocialAuth(spec *collections.Spec, filterField string, filt
 	return s.RawQuery(sql, args...)
 }
 
-func (s *Storage) IsSocialAuthExist(spec *collections.Spec, filterField string, filterVal interface{}) (bool, error) {
-	sql := fmt.Sprintf("select exists (select 1 from %s where %s=$1)", Sanitize(spec.Name), Sanitize(filterField))
-	res, err := s.RawQuery(sql, filterVal)
+func (s *Storage) IsSocialAuthExist(spec *collections.Spec, filterField string, filterVal interface{},
+	provideField string, provider interface{}) (bool, error) {
+	sql := fmt.Sprintf("select exists (select 1 from %s where %s=$1 and %s=$2)",
+		Sanitize(spec.Name), Sanitize(filterField), Sanitize(provideField))
+	res, err := s.RawQuery(sql, filterVal, provider)
 	if err != nil {
 		return false, err
 	}
 
 	return res.(bool), nil
+}
+
+func (s *Storage) LinkAccount(spec *collections.Spec, filterField string, filterVal interface{}, user *types.IdentityData) error {
+	b := sqlbuilder.PostgreSQL.NewUpdateBuilder()
+	b.Update(Sanitize(spec.Name)).Set(b.Assign(Sanitize(spec.FieldsMap["user_id"].Name), user.Id))
+	b.Where(b.Equal(Sanitize(spec.FieldsMap[filterField].Name), filterVal))
+	b.SQL(fmt.Sprintf(" returning %s", Sanitize(spec.Pk)))
+	sql, args := b.Build()
+
+	return s.RawExec(sql, args...)
 }

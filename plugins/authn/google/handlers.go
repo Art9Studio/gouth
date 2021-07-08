@@ -11,8 +11,8 @@ import (
 
 func GetAuthCode(g *google) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		url := g.provider.AuthCodeURL("state")
-		return c.Redirect(url)
+		u := g.provider.AuthCodeURL("state")
+		return c.Redirect(u)
 	}
 }
 
@@ -23,7 +23,6 @@ func Login(g *google) func(*fiber.Ctx) error {
 		if state != "state" {
 			return sendError(c, fiber.StatusBadRequest, "invalid state")
 		}
-
 		code := c.Query("code")
 		if code == "" {
 			return sendError(c, fiber.StatusBadRequest, "code not found")
@@ -40,36 +39,36 @@ func Login(g *google) func(*fiber.Ctx) error {
 			return sendError(c, fiber.StatusBadRequest, err.Error())
 		}
 
+		var socAuth *storageT.SocialAuthData
 		email, _ := jwtT.Get("email")
 		s := &g.coll.Spec
-		exist, err := g.storage.IsSocialAuthExist(s, s.FieldsMap["email"].Name, email)
+		exist, err := g.storage.IsSocialAuthExist(s, s.FieldsMap["email"].Name, email, s.FieldsMap["provider"].Name, "google")
 		if err != nil {
 			return sendError(c, fiber.StatusInternalServerError, err.Error())
 		}
 
-		var socAuth *storageT.SocialAuthData
-
-		if !exist {
-			socAuth = &storageT.SocialAuthData{Provider: "google"}
-			socAuth.Email = email
-			socAuth.SocialId, _ = jwtT.Get("sub")
-			socAuth.Additional = getAdditionalData(g, jwtT)
-			socAuth.UserData, err = json.MarshalIndent(jwtT, "", "  ")
+		if exist {
+			rawSocAuth, err := g.storage.GetSocialAuth(s, s.FieldsMap["email"].Name, email, s.FieldsMap["provider"].Name, "google")
 			if err != nil {
 				return sendError(c, fiber.StatusInternalServerError, err.Error())
 			}
-
-			_, err := g.storage.InsertSocialAuth(s, socAuth)
-			if err != nil {
-				return sendError(c, fiber.StatusInternalServerError, err.Error())
-			}
+			socAuth = storageT.NewSocialAuthData(rawSocAuth, s.FieldsMap)
 		} else {
-			rawSocAuth, err := g.storage.GetSocialAuth(s, s.FieldsMap["email"].Name, email)
+			userData, err := jwtT.AsMap(context.Background())
 			if err != nil {
 				return sendError(c, fiber.StatusInternalServerError, err.Error())
 			}
 
-			socAuth = storageT.NewSocialAuthData(rawSocAuth.(map[string]interface{}), s.FieldsMap)
+			socAuth = &storageT.SocialAuthData{
+				Email:    email,
+				Provider: "google",
+				UserData: userData,
+			}
+			socAuth.SocialId, _ = jwtT.Get("sub")
+			socAuth.Id, err = g.storage.InsertSocialAuth(s, socAuth)
+			if err != nil {
+				return sendError(c, fiber.StatusInternalServerError, err.Error())
+			}
 		}
 
 		authzCtx := authzT.Context{
@@ -78,12 +77,78 @@ func Login(g *google) func(*fiber.Ctx) error {
 			UserData:   socAuth.UserData,
 			Additional: socAuth.Additional,
 		}
+		if err := g.authorizer.Authorize(c, &authzCtx); err != nil {
+			return sendError(c, fiber.StatusInternalServerError, err.Error())
+		}
 
-		return g.authorizer.Authorize(c, &authzCtx)
+		s = &g.identity.Collection.Spec
+		exist, err = g.storage.IsIdentityExist(g.identity, s.FieldsMap["email"].Name, email)
+		if err != nil {
+			return sendError(c, fiber.StatusInternalServerError, err.Error())
+		}
+		if exist {
+			rawUser, err := g.storage.GetIdentity(g.identity, s.FieldsMap["email"].Name, email)
+			if err != nil {
+				return sendError(c, fiber.StatusInternalServerError, err.Error())
+			}
+			user := storageT.NewIdentityData(rawUser, s.FieldsMap)
+
+			jsonBody := make(map[string]interface{})
+			if err := json.Unmarshal(c.Response().Body(), &jsonBody); err != nil {
+				return sendError(c, fiber.StatusInternalServerError, err.Error())
+			}
+			jsonBody["can_connect"] = true
+			jsonBody["social_id"] = socAuth.Id
+			jsonBody["user_id"] = user.Id
+			return c.JSON(jsonBody)
+		}
+
+		return nil
 	}
 }
 
-func getAdditionalData(g *google, t jwt.Token) map[string]interface{} {
+func LinkAccount(g *google) func(*fiber.Ctx) error {
+	return func(c *fiber.Ctx) error {
+		var authInput interface{}
+		if err := c.BodyParser(&authInput); err != nil {
+			return sendError(c, fiber.StatusBadRequest, err.Error())
+		}
+
+		conn := g.conf.Link
+		socAuth := &storageT.SocialAuthData{}
+		if statusCode, err := getJsonData(authInput, conn.FieldsMap["social_id"], &socAuth.Id); err != nil {
+			return sendError(c, statusCode, err.Error())
+		}
+		user := &storageT.IdentityData{}
+		if statusCode, err := getJsonData(authInput, conn.FieldsMap["user_id"], &user.Id); err != nil {
+			return sendError(c, statusCode, err.Error())
+		}
+
+		s := &g.coll.Spec
+		rawSocAuth, err := g.storage.GetSocialAuth(s, s.FieldsMap["id"].Name, socAuth.Id, s.FieldsMap["provider"].Name, "google")
+		if err != nil {
+			return sendError(c, fiber.StatusInternalServerError, err.Error())
+		}
+		socAuth = storageT.NewSocialAuthData(rawSocAuth, s.FieldsMap)
+
+		userSpec := &g.identity.Collection.Spec
+		exist, err := g.storage.IsIdentityExist(g.identity, userSpec.FieldsMap["id"].Name, user.Id)
+		if err != nil {
+			return sendError(c, fiber.StatusInternalServerError, err.Error())
+		}
+		if !exist {
+			return sendError(c, fiber.StatusBadRequest, "user doesn't exists")
+		}
+
+		if err := g.storage.LinkAccount(s, s.FieldsMap["id"].Name, socAuth.Id, user); err != nil {
+			return sendError(c, fiber.StatusInternalServerError, err.Error())
+		}
+
+		return c.JSON(fiber.Map{"message": "success"})
+	}
+}
+
+/*func getAdditionalData(g *google, t jwt.Token) map[string]interface{} {
 	additionalData := map[string]interface{}{}
 
 	for collName, tokenName := range g.conf.FieldsMap {
@@ -94,4 +159,4 @@ func getAdditionalData(g *google, t jwt.Token) map[string]interface{} {
 	}
 
 	return additionalData
-}
+}*/

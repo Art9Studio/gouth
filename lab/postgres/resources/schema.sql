@@ -67,8 +67,5 @@ CREATE TABLE social_logins
     email      TEXT,
     provider   TEXT,
     user_data  jsonb,
-    first_name TEXT,
-    last_name  TEXT,
-    city       TEXT,
-    country    TEXT
+    user_id INT REFERENCES users
 );

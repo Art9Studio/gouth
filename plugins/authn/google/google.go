@@ -3,6 +3,7 @@ package google
 import (
 	"aureole/internal/collections"
 	"aureole/internal/configs"
+	"aureole/internal/identity"
 	"aureole/internal/plugins/authn"
 	authzTypes "aureole/internal/plugins/authz/types"
 	storageT "aureole/internal/plugins/storage/types"
@@ -20,6 +21,7 @@ type google struct {
 	appUrl     *url.URL
 	rawConf    *configs.Authn
 	conf       *config
+	identity   *identity.Identity
 	coll       *collections.Collection
 	storage    storageT.Storage
 	provider   *oauth2.Config
@@ -36,6 +38,11 @@ func (g *google) Init(appName string, appUrl *url.URL) (err error) {
 	}
 
 	pluginApi := authn.Repository.PluginApi
+	g.identity, err = pluginApi.Project.GetIdentity(appName)
+	if err != nil {
+		return fmt.Errorf("identity in app '%s' is not declared", appName)
+	}
+
 	g.coll, err = pluginApi.Project.GetCollection(g.conf.Coll)
 	if err != nil {
 		return fmt.Errorf("collection named '%s' is not declared", g.conf.Coll)
@@ -85,6 +92,11 @@ func createRoutes(g *google) {
 			Method:  "GET",
 			Path:    g.rawConf.PathPrefix + g.conf.RedirectUri,
 			Handler: Login(g),
+		},
+		{
+			Method:  "POST",
+			Path:    g.rawConf.PathPrefix + g.conf.Link.Uri,
+			Handler: LinkAccount(g),
 		},
 	}
 	authn.Repository.PluginApi.Router.AddAppRoutes(g.appName, routes)

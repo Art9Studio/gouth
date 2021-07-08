@@ -1,4 +1,4 @@
-package vk
+package facebook
 
 import (
 	"aureole/internal/configs"
@@ -13,10 +13,9 @@ type (
 		ClientSecret string   `mapstructure:"client_secret"`
 		Scopes       []string `mapstructure:"scopes"`
 		RedirectUri  string   `mapstructure:"redirect_uri"`
-		Fields       []string `mapstructure:"fields"`
 	}
 )
 
-func (v vkAdapter) Create(conf *configs.Authn) authnTypes.Authenticator {
-	return &vk{rawConf: conf}
+func (f facebookAdapter) Create(conf *configs.Authn) authnTypes.Authenticator {
+	return &facebook{rawConf: conf}
 }

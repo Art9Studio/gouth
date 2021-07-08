@@ -135,16 +135,17 @@ apps:
         config:
           collection: oauth2
           storage: one_db
-          #client_id: "${GOOGLE_CLIENT_ID}"  # todo: fix loading this values
-          #client_secret: "${GOOGLE_SECRET}"
-          client_id: "979380211364-2j73orhvik7tkdvts349r2fu4m2gm0ep.apps.googleusercontent.com"
-          client_secret: "pftK4-1eEHzD1VoPunHEFz50"
-          scopes: [ "https://www.googleapis.com/auth/userinfo.email",
-                    "https://www.googleapis.com/auth/userinfo.profile" ]
+          client_id: "${GOOGLE_CLIENT_ID}"
+          client_secret: "${GOOGLE_SECRET}"
+          scopes:
+            - "https://www.googleapis.com/auth/userinfo.email"
+            - "https://www.googleapis.com/auth/userinfo.profile"
           redirect_uri: "/login"
-          fields_map:
-            first_name: "given_name"
-            last_name: "family_name"
+          account_link:
+            uri: "/link"
+            fields_map:
+              social_id: "{$.social_id}"
+              user_id: "{$.user_id}"
 
       - type: "vk"
         path_prefix: "/oauth2/vk"
@@ -152,20 +153,24 @@ apps:
         config:
           collection: oauth2
           storage: one_db
-          #client_id: "${VK_CLIENT_ID}"  # todo: fix loading this values
-          #client_secret: "${VK_SECRET}"
-          client_id: "7897145"
-          client_secret: "80ngClKsSMQHSJGdeC86"
-          scopes: [ "email" ]
+          client_id: "${VK_CLIENT_ID}"
+          client_secret: "${VK_SECRET}"
+          scopes:
+            - "email"
           redirect_uri: "/login"
-          api:
-            version: 5.131
-            fields: [ ]
-          fields_map:
-            first_name: "first_name"
-            last_name: "last_name"
-            city: "city"
-            country: "country"
+          fields: [ ]
+
+      - type: "facebook"
+        path_prefix: "/oauth2/facebook"
+        authz: jwt
+        config:
+          collection: oauth2
+          storage: one_db
+          client_id: "${FACEBOOK_CLIENT_ID}"
+          client_secret: "${FACEBOOK_SECRET}"
+          scopes:
+            - "email"
+          redirect_uri: "/login"
 
     authZ:
       - type: "jwt"
@@ -399,10 +404,7 @@ collections:
         email: "email"
         provider: "provider"
         user_data: "user_data"
-        first_name: "first_name"
-        last_name: "last_name"
-        city: "city"
-        country: "country"
+        user_id: "user_id"
 
 hashers:
   - type: "argon2"

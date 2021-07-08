@@ -7,13 +7,18 @@ import (
 
 type (
 	config struct {
-		Coll         string            `mapstructure:"collection"`
-		Storage      string            `mapstructure:"storage"`
-		ClientId     string            `mapstructure:"client_id"`
-		ClientSecret string            `mapstructure:"client_secret"`
-		Scopes       []string          `mapstructure:"scopes"`
-		RedirectUri  string            `mapstructure:"redirect_uri"`
-		FieldsMap    map[string]string `mapstructure:"fields_map"`
+		Coll         string   `mapstructure:"collection"`
+		Storage      string   `mapstructure:"storage"`
+		ClientId     string   `mapstructure:"client_id"`
+		ClientSecret string   `mapstructure:"client_secret"`
+		Scopes       []string `mapstructure:"scopes"`
+		RedirectUri  string   `mapstructure:"redirect_uri"`
+		Link         link     `mapstructure:"account_link"`
+	}
+
+	link struct {
+		Uri       string            `mapstructure:"uri"`
+		FieldsMap map[string]string `mapstructure:"fields_map"`
 	}
 )
 

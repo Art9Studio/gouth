@@ -1,20 +1,20 @@
 package vk
 
 import (
+	authzT "aureole/internal/plugins/authz/types"
+	storageT "aureole/internal/plugins/storage/types"
 	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
-	"github.com/lestrrat-go/jwx/jwt"
-	"github.com/thecasualcoder/godash"
 	"net/url"
 	"strings"
 )
 
 func GetAuthCode(v *vk) func(*fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
-		url := v.provider.AuthCodeURL("state")
-		return c.Redirect(url)
+		u := v.provider.AuthCodeURL("state")
+		return c.Redirect(u)
 	}
 }
 
@@ -46,23 +46,29 @@ func Login(v *vk) func(*fiber.Ctx) error {
 		if err != nil {
 			return sendError(c, fiber.StatusInternalServerError, err.Error())
 		}
+		_ = resp
 
-		var respJson map[string]interface{}
-		if err := json.NewDecoder(resp.Body).Decode(&respJson); err != nil {
+		var data map[string]interface{}
+		if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
 			return sendError(c, fiber.StatusBadRequest, err.Error())
 		}
+		userArr := data["response"].([]interface{})
+		userData := userArr[0].(map[string]interface{})
 
-		/*idToken := t.Extra("id_token")
-		jwtT, err := jwt.ParseString(idToken.(string))
-		if err != nil {
-			return sendError(c, fiber.StatusBadRequest, err.Error())
-		}
-
-		email, _ := jwtT.Get("email")
+		var exist bool
 		s := &v.coll.Spec
-		exist, err := v.storage.IsSocialAuthExist(s, s.FieldsMap["email"].Name, email)
-		if err != nil {
-			return sendError(c, fiber.StatusInternalServerError, err.Error())
+		email := t.Extra("email")
+		if email != nil {
+			exist, err = v.storage.IsSocialAuthExist(s, s.FieldsMap["email"].Name, email, s.FieldsMap["provider"].Name, "vk")
+			if err != nil {
+				return sendError(c, fiber.StatusInternalServerError, err.Error())
+			}
+		} else {
+			socialId := t.Extra("user_id")
+			exist, err = v.storage.IsSocialAuthExist(s, s.FieldsMap["social_id"].Name, socialId, s.FieldsMap["provider"].Name, "vk")
+			if err != nil {
+				return sendError(c, fiber.StatusInternalServerError, err.Error())
+			}
 		}
 
 		var socAuth *storageT.SocialAuthData
@@ -70,21 +76,27 @@ func Login(v *vk) func(*fiber.Ctx) error {
 		if !exist {
 			socAuth = &storageT.SocialAuthData{Provider: "vk"}
 			socAuth.Email = email
-			socAuth.SocialId, _ = jwtT.Get("sub")
-			socAuth.Additional = getAdditionalData(v, jwtT)
-			socAuth.UserData, err = json.MarshalIndent(jwtT, "", "  ")
-			if err != nil {
-				return sendError(c, fiber.StatusInternalServerError, err.Error())
-			}
+			userId := t.Extra("user_id").(float64)
+			socAuth.SocialId = fmt.Sprintf("%f", userId)
+			//socAuth.Additional = getAdditionalData(v, userData)
+			socAuth.UserData = userData
 
 			_, err := v.storage.InsertSocialAuth(s, socAuth)
 			if err != nil {
 				return sendError(c, fiber.StatusInternalServerError, err.Error())
 			}
 		} else {
-			rawSocAuth, err := v.storage.GetSocialAuth(s, s.FieldsMap["email"].Name, email)
-			if err != nil {
-				return sendError(c, fiber.StatusInternalServerError, err.Error())
+			var rawSocAuth storageT.JSONCollResult
+			if email != nil {
+				rawSocAuth, err = v.storage.GetSocialAuth(s, s.FieldsMap["email"].Name, email, s.FieldsMap["provider"].Name, "vk")
+				if err != nil {
+					return sendError(c, fiber.StatusInternalServerError, err.Error())
+				}
+			} else {
+				rawSocAuth, err = v.storage.GetSocialAuth(s, s.FieldsMap["social_id"].Name, t.Extra("user_id"), s.FieldsMap["provider"].Name, "vk")
+				if err != nil {
+					return sendError(c, fiber.StatusInternalServerError, err.Error())
+				}
 			}
 
 			socAuth = storageT.NewSocialAuthData(rawSocAuth.(map[string]interface{}), s.FieldsMap)
@@ -97,8 +109,7 @@ func Login(v *vk) func(*fiber.Ctx) error {
 			Additional: socAuth.Additional,
 		}
 
-		return v.authorizer.Authorize(c, &authzCtx)*/
-		return nil
+		return v.authorizer.Authorize(c, &authzCtx)
 	}
 }
 
@@ -109,32 +120,23 @@ func getUrl(v *vk) (string, error) {
 	}
 
 	q := u.Query()
-	q.Set("v", fmt.Sprintf("%f", v.conf.Api.Version))
-
-	var fields []string
-	if err = godash.Map(v.conf.FieldsMap, &fields, func(key, val string) string {
-		return val
-	}); err != nil {
-		return "", err
-	}
-
-	fields = union(fields, v.conf.Api.Fields)
-	fieldsStr := strings.Join(fields, ",")
+	q.Set("v", fmt.Sprintf("%f", 5.131))
+	fieldsStr := strings.Join(v.conf.Fields, ",")
 	q.Set("fields", fieldsStr)
 	u.RawQuery = q.Encode()
 
 	return u.String(), nil
 }
 
-func getAdditionalData(g *vk, t jwt.Token) map[string]interface{} {
+/*func getAdditionalData(g *vk, data map[string]interface{}) map[string]interface{} {
 	additionalData := map[string]interface{}{}
 
 	for collName, tokenName := range g.conf.FieldsMap {
-		val, ok := t.Get(tokenName)
+		val, ok := data[tokenName]
 		if ok {
 			additionalData[collName] = val
 		}
 	}
 
 	return additionalData
-}
+}*/
