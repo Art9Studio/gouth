@@ -11,6 +11,7 @@ type SocialAuthData struct {
 	Email      interface{}
 	Provider   interface{}
 	UserData   interface{}
+	UserId     interface{}
 	Additional map[string]interface{}
 }
 
@@ -24,6 +25,7 @@ func NewSocialAuthData(rawData JSONCollResult, specs map[string]collections.Fiel
 		Email:      data[specs["email"].Name],
 		Provider:   data[specs["provider"].Name],
 		UserData:   string(userDataJson),
+		UserId:     data[specs["user_id"].Name],
 		Additional: map[string]interface{}{},
 	}
 

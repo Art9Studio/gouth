@@ -71,40 +71,54 @@ func Login(g *google) func(*fiber.Ctx) error {
 			}
 		}
 
-		authzCtx := authzT.Context{
+		var authzCtx *authzT.Context
+		if socAuth.UserId != nil {
+			// fill with user data
+			authzCtx = &authzT.Context{}
+			return g.authorizer.Authorize(c, authzCtx)
+		}
+
+		authzCtx = &authzT.Context{
 			SocialId:   socAuth.SocialId,
 			Email:      socAuth.Email,
 			UserData:   socAuth.UserData,
 			Additional: socAuth.Additional,
 		}
-		if err := g.authorizer.Authorize(c, &authzCtx); err != nil {
+		if err := g.authorizer.Authorize(c, authzCtx); err != nil {
 			return sendError(c, fiber.StatusInternalServerError, err.Error())
 		}
 
-		s = &g.identity.Collection.Spec
-		exist, err = g.storage.IsIdentityExist(g.identity, s.FieldsMap["email"].Name, email)
+		return canLinkAccount(c, g, map[string]interface{}{
+			"email":     email,
+			"social_id": socAuth.Id,
+		})
+	}
+}
+
+func canLinkAccount(c *fiber.Ctx, g *google, ctx map[string]interface{}) error {
+	s := &g.identity.Collection.Spec
+	exist, err := g.storage.IsIdentityExist(g.identity, s.FieldsMap["email"].Name, ctx["email"])
+	if err != nil {
+		return sendError(c, fiber.StatusInternalServerError, err.Error())
+	}
+	if exist {
+		rawUser, err := g.storage.GetIdentity(g.identity, s.FieldsMap["email"].Name, ctx["email"])
 		if err != nil {
 			return sendError(c, fiber.StatusInternalServerError, err.Error())
 		}
-		if exist {
-			rawUser, err := g.storage.GetIdentity(g.identity, s.FieldsMap["email"].Name, email)
-			if err != nil {
-				return sendError(c, fiber.StatusInternalServerError, err.Error())
-			}
-			user := storageT.NewIdentityData(rawUser, s.FieldsMap)
+		user := storageT.NewIdentityData(rawUser, s.FieldsMap)
 
-			jsonBody := make(map[string]interface{})
-			if err := json.Unmarshal(c.Response().Body(), &jsonBody); err != nil {
-				return sendError(c, fiber.StatusInternalServerError, err.Error())
-			}
-			jsonBody["can_connect"] = true
-			jsonBody["social_id"] = socAuth.Id
-			jsonBody["user_id"] = user.Id
-			return c.JSON(jsonBody)
+		jsonBody := make(map[string]interface{})
+		if err := json.Unmarshal(c.Response().Body(), &jsonBody); err != nil {
+			return sendError(c, fiber.StatusInternalServerError, err.Error())
 		}
-
-		return nil
+		jsonBody["can_connect"] = true
+		jsonBody["social_id"] = ctx["social_id"]
+		jsonBody["user_id"] = user.Id
+		return c.JSON(jsonBody)
 	}
+
+	return nil
 }
 
 func LinkAccount(g *google) func(*fiber.Ctx) error {
