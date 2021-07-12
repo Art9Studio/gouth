@@ -6,9 +6,9 @@ require (
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/goccy/go-json v0.5.1 // indirect
 	github.com/gofiber/fiber/v2 v2.14.0
-	github.com/gofrs/uuid v3.4.0+incompatible
+	github.com/gofrs/uuid v4.0.0+incompatible
 	github.com/huandu/go-sqlbuilder v1.12.1
-	github.com/jackc/pgx/v4 v4.11.0
+	github.com/jackc/pgx/v4 v4.12.0
 	github.com/jarcoal/httpmock v1.0.8
 	github.com/joho/godotenv v1.3.0
 	github.com/jordan-wright/email v4.0.1-0.20210109023952-943e75fe5223+incompatible
@@ -26,7 +26,7 @@ require (
 	github.com/spf13/viper v1.7.1 // indirect
 	github.com/stretchr/testify v1.7.0
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
+	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
